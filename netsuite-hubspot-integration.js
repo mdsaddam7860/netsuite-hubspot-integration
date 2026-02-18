@@ -5,7 +5,7 @@ dotenv.config({
 });
 import { app } from "./src/app.js";
 import { logger } from "./src/index.js";
-import { getHubspotClient } from "./src/configs/hubspot.config.js";
+import { getHubspotClient, getHSAxios } from "./src/configs/hubspot.config.js";
 
 // Start the server, For CI/CD deployments remove deploy.yml from .gitignore
 // npm i express axios node-cron winston winston-daily-rotate-file dotenv @mohammadsaddam-dev/hubspot-toolkit
@@ -32,17 +32,12 @@ serverInit();
 
 async function init() {
   try {
-    // Initialize Hubspot Client
+    // Initialize Client
     try {
-      const client = getHubspotClient();
-      // logger.info(
-      //   `✅ HubSpot client initialized successfully : ${JSON.stringify(
-      //     client,
-      //     null,
-      //     2
-      //   )}`
-      // );
-      logger.info(`✅ HubSpot client initialized successfully`);
+      logger.info(`➡️ Config initializing...`);
+      getHubspotClient();
+      getHSAxios();
+      logger.info(`✅ Config initialized successfully`);
     } catch (error) {
       logger.error("❌ HubSpot client failed to initialize:", error);
     }

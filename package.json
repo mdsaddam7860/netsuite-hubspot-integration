@@ -1,7 +1,7 @@
 {
-  "name": "Netsuite Hubspot Integration",
+  "name": "netsuite-hubspot-integration",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "netsuite-hubspot-integration.js",
   "type": "module",
   "scripts": {
     "test": "node netsuite-hubspot-integration.js",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mdsaddam7860/server-blueprint.git"
+    "url": "git+https://github.com/mdsaddam7860/netsuite-hubspot-integration.git"
   },
   "author": "Mohammad Saddam",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mdsaddam7860/server-blueprint/issues"
+    "url": "https://github.com/mdsaddam7860/netsuite-hubspot-integration/issues"
   },
-  "homepage": "https://github.com/mdsaddam7860/server-blueprint#readme",
+  "homepage": "https://github.com/mdsaddam7860/netsuite-hubspot-integration#readme",
   "description": "",
   "dependencies": {
     "@mohammadsaddam-dev/hubspot-toolkit": "^1.0.0",
@@ -26,5 +26,9 @@
     "node-cron": "^4.2.1",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "crypto": "^1.0.1",
+    "oauth-1.0a": "^2.2.6"
   }
 }

@@ -77,7 +77,7 @@ async function* hubspotGenerator(
 async function syncHubspotContactToServiceM8Client() {
   try {
     const lastSyncTime = "2026-02-14T10:00:00.000Z";
-    const endpoint = "/crm/v3/objects/contacts";
+    const endpoint = "/crm/v3/objects/invoices";
 
     const filterGroups = [
       {
@@ -91,7 +91,7 @@ async function syncHubspotContactToServiceM8Client() {
       },
     ];
 
-    const contactStream = hubspotGenerator("/crm/v3/objects/contacts", {
+    const contactStream = hubspotGenerator(endpoint, {
       properties: contactProperties(),
       filterGroups,
     });
