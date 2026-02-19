@@ -1,13 +1,13 @@
-const axios = require("axios");
-const OAuth = require("oauth-1.0a");
-const crypto = require("crypto");
+import axios from "axios";
+import OAuth from "oauth-1.0a";
+import crypto from "crypto";
 
 let netsuiteClient = null;
 
 function getNetsuiteClient() {
   if (netsuiteClient) return netsuiteClient;
 
-  // 1. Initialize the OAuth Signer
+  // INITIALIZE OAUTH HERE - Inside the function to ensure process.env is ready
   const oauth = OAuth({
     consumer: {
       key: process.env.NS_CONSUMER_KEY,
@@ -27,28 +27,26 @@ function getNetsuiteClient() {
     secret: process.env.NS_TOKEN_SECRET,
   };
 
-  // 2. Create the Axios Instance (Headers start empty)
   netsuiteClient = axios.create({
     baseURL: process.env.NETSUITE_BASE_URL,
     headers: { "Content-Type": "application/json" },
   });
 
-  // 3. Add the Interceptor to sign EVERY request dynamically
   netsuiteClient.interceptors.request.use((config) => {
+    const fullUrl = config.baseURL + config.url;
+
     const requestData = {
-      url: config.baseURL + config.url,
+      url: fullUrl,
       method: config.method.toUpperCase(),
-      data: config.data,
     };
 
-    // Generate fresh OAuth headers
+    // Use the local oauth instance
     const authHeader = oauth.toHeader(oauth.authorize(requestData, token));
+    const realm = process.env.NS_ACCOUNT_ID.toUpperCase().replace("-", "_");
 
-    // Add the specific NetSuite 'realm'
     config.headers[
       "Authorization"
-    ] = `${authHeader.Authorization}, realm="${process.env.NS_ACCOUNT_ID}"`;
-
+    ] = `${authHeader.Authorization}, realm="${realm}"`;
     return config;
   });
 
@@ -56,3 +54,18 @@ function getNetsuiteClient() {
 }
 
 export { getNetsuiteClient };
+
+/**Usage Example
+ const client = getNetsuiteClient();
+
+// To POST a new invoice
+await client.post('/services/rest/record/v1/invoice', {
+  entity: { id: "123" }, // Customer ID
+  trandate: "2023-10-27",
+  item: {
+    items: [
+      { item: { id: "456" }, quantity: 1 }
+    ]
+  }
+});
+ */

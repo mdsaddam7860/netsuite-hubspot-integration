@@ -1,6 +1,7 @@
 import { logger } from "../index.js";
 import { getHSAxios } from "../configs/hubspot.config.js";
-import { hubspotExecutor } from "../utils/executors.js";
+import { hubspotExecutor, netsuiteExecutor } from "../utils/executors.js";
+
 async function* hubspotGenerator(
   endpoint,
   {

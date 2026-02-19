@@ -7,27 +7,14 @@ const hubspotExecutor = createRequestExecutor({
   retries: 3,
 });
 
-const zendeskExecutor = createRequestExecutor({
-  name: "Zendesk",
-  rateLimit: 5,
-  intervalMs: 1000,
-  retries: 3,
-});
-const intermediaExecutor = createRequestExecutor({
-  name: "Intermedia",
-  rateLimit: 4,
+const netsuiteExecutor = createRequestExecutor({
+  name: "Netsuite",
+  rateLimit: 1,
   intervalMs: 1000,
   retries: 3,
 });
 
-const gongExecutor = createRequestExecutor({
-  name: "Gong",
-  rateLimit: 3,
-  intervalMs: 1000,
-  retries: 4,
-});
-
-export { hubspotExecutor, gongExecutor, intermediaExecutor, zendeskExecutor };
+export { hubspotExecutor, netsuiteExecutor };
 
 /***!SECTION
  * 3. How you use it (this is the important part)
