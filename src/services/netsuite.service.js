@@ -2,11 +2,11 @@ import { logger } from "../index.js";
 import { getNetsuiteClient } from "../configs/netsuite.config.js";
 import { hubspotExecutor, netsuiteExecutor } from "../utils/executors.js";
 
-async function* netsuiteGenerator(endpoint) {
+async function* netsuiteGenerator(endpoint, limit = 1, offset = 1) {
   try {
     const client = getNetsuiteClient();
-    const limit = 100;
-    let offset = 0;
+    // const limit = 100;
+    // let offset = 0;
     let hasMore = true;
     let pageCount = 0;
     let totalProcessed = 0;
@@ -17,7 +17,7 @@ async function* netsuiteGenerator(endpoint) {
       const response = await netsuiteExecutor(
         () =>
           client.get(endpoint, {
-            // params: { limit, offset },
+            params: { limit, offset },
           }),
         { name: "Netsuite Generator", endpoint }
       );
@@ -37,8 +37,8 @@ async function* netsuiteGenerator(endpoint) {
               : "0.00",
         },
       };
-      hasMore = response.data?.hasMore;
       offset += limit;
+      hasMore = response.data?.hasMore;
     } while (hasMore);
   } catch (error) {
     logger.error("❌ Critical startup failure:", {
@@ -53,7 +53,7 @@ async function syncNetsuiteInvoiceToHubspot() {
   try {
     // get invoice stream from invoice endpoint
     const endpoint = "/services/rest/record/v1/invoice";
-    const invoiceStream = netsuiteGenerator(endpoint);
+    const invoiceStream = netsuiteGenerator(endpoint, 100, 100);
     for await (const { records, stats } of invoiceStream) {
       logger.info(
         `[Netsuite Progress] Processing Invoices: ${
@@ -65,7 +65,33 @@ async function syncNetsuiteInvoiceToHubspot() {
         processed: stats.totalProcessed,
         speed: `${stats.recordsPerSecond} rec/sec`,
       });
-      // return; // TODO Remove after testing
+      return; // TODO Remove after testing
+    }
+  } catch (error) {
+    logger.error("❌ Critical startup failure:", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+  }
+}
+async function syncNetsuiteCustomerToHubspot() {
+  try {
+    // get invoice stream from invoice endpoint
+    const endpoint = "/services/rest/record/v1/customer";
+    const invoiceStream = netsuiteGenerator(endpoint, 100, 100);
+    for await (const { records, stats } of invoiceStream) {
+      logger.info(
+        `[Netsuite Progress] Processing Customers: ${
+          records.length
+        } : ${JSON.stringify(records[0], null, 2)}`
+      );
+      logger.info(`[Netsuite Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+      return; // TODO Remove after testing
     }
   } catch (error) {
     logger.error("❌ Critical startup failure:", {
@@ -76,4 +102,8 @@ async function syncNetsuiteInvoiceToHubspot() {
   }
 }
 
-export { netsuiteGenerator, syncNetsuiteInvoiceToHubspot };
+export {
+  netsuiteGenerator,
+  syncNetsuiteInvoiceToHubspot,
+  syncNetsuiteCustomerToHubspot,
+};

@@ -1,6 +1,7 @@
 import axios from "axios";
 import OAuth from "oauth-1.0a";
 import crypto from "crypto";
+import qs from "querystring";
 
 let netsuiteClient = null;
 
@@ -33,20 +34,30 @@ function getNetsuiteClient() {
   });
 
   netsuiteClient.interceptors.request.use((config) => {
-    const fullUrl = config.baseURL + config.url;
+    const cleanBase = config.baseURL.replace(/\/$/, "");
+    const cleanPath = config.url.startsWith("/")
+      ? config.url
+      : "/" + config.url;
+
+    let fullUrl = cleanBase + cleanPath;
+
+    if (config.params) {
+      const query = qs.stringify(config.params);
+      fullUrl += `?${query}`;
+    }
 
     const requestData = {
       url: fullUrl,
       method: config.method.toUpperCase(),
     };
 
-    // Use the local oauth instance
-    const authHeader = oauth.toHeader(oauth.authorize(requestData, token));
-    const realm = process.env.NS_ACCOUNT_ID.toUpperCase().replace("-", "_");
+    const oauthData = oauth.authorize(requestData, token);
+    const authHeader = oauth.toHeader(oauthData).Authorization;
 
-    config.headers[
-      "Authorization"
-    ] = `${authHeader.Authorization}, realm="${realm}"`;
+    config.headers.Authorization =
+      `OAuth realm="${process.env.NS_ACCOUNT_ID}", ` +
+      authHeader.replace("OAuth ", "");
+
     return config;
   });
 
