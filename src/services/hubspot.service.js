@@ -119,5 +119,50 @@ async function syncHubspotContactToServiceM8Client() {
     });
   }
 }
+async function syncHubspotInvoiceToNetSuiteInvoice() {
+  try {
+    const lastSyncTime = "2026-02-14T10:00:00.000Z";
+    const endpoint = "/crm/v3/objects/invoices";
 
-export { syncHubspotContactToServiceM8Client };
+    // const filterGroups = [
+    //   {
+    //     filters: [
+    //       {
+    //         propertyName: "lastmodifieddate",
+    //         operator: "GT",
+    //         value: lastSyncTime,
+    //       },
+    //     ],
+    //   },
+    // ];
+
+    const contactStream = hubspotGenerator(endpoint, {
+      // properties: contactProperties(),
+      // filterGroups,
+    });
+
+    // const contactStream = hubspotGenerator(endpoint, properties, filterGroups);
+
+    for await (const { records, stats } of contactStream) {
+      // await processBatchContactInServiceM8(records);
+      logger.info(`Invoice : ${JSON.stringify(records[0], null, 2)}`);
+      logger.info(`[Netsuite Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+      return;
+    }
+  } catch (error) {
+    logger.error("❌ Error processing Invoice in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+  }
+}
+
+export { syncHubspotInvoiceToNetSuiteInvoice };

@@ -15,7 +15,7 @@ import {
   syncNetsuiteInvoiceToHubspot,
   syncNetsuiteCustomerToHubspot,
 } from "./src/services/netsuite.service.js";
-
+import { syncHubspotInvoiceToNetSuiteInvoice } from "./src/services/hubspot.service.js";
 const PORT = process.env.PORT || 5000;
 
 function serverInit() {
@@ -34,7 +34,7 @@ function serverInit() {
 }
 
 serverInit();
-syncNetsuiteCustomerToHubspot();
+syncHubspotInvoiceToNetSuiteInvoice();
 
 async function init() {
   try {
