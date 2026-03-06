@@ -1,6 +1,7 @@
 import { logger } from "../index.js";
 import { getNetsuiteClient } from "../configs/netsuite.config.js";
 import { hubspotExecutor, netsuiteExecutor } from "../utils/executors.js";
+import { hubspotDealToNetsuiteInvoiceMapping } from "../mappings/hubspot-netsuite.mapping.js";
 
 async function* netsuiteGenerator(endpoint, limit = 1, offset = 1) {
   try {
@@ -102,8 +103,98 @@ async function syncNetsuiteCustomerToHubspot() {
   }
 }
 
+/**
+ * Creates an Invoice in NetSuite via REST API
+ * @param {Object} invoiceData - The invoice object containing entity, department, and items
+ * @returns {Promise<Object>} - The NetSuite API response
+ */
+async function createNetSuiteInvoice(payload) {
+  try {
+    const client = getNetsuiteClient();
+
+    // Log the payload for debugging
+    logger.info(`Payload: ${JSON.stringify(payload, null, 2)}`);
+
+    // The endpoint based on your CURL call
+    const endpoint = "/services/rest/record/v1/invoice";
+
+    const response = await client.post(endpoint, payload, {
+      headers: {
+        Prefer: "return=representation",
+      },
+    });
+
+    console.log("Invoice Created Successfully:", response?.data?.id);
+    logger.info(
+      `Invoice Created Successfully: ${JSON.stringify(response?.data)}`
+    );
+    logger.info(
+      `Invoice Created Successfully: ${JSON.stringify(
+        response?.headers,
+        null,
+        2
+      )}`
+    );
+    return response?.data;
+  } catch (error) {
+    // Log detailed error for debugging (NetSuite provides detailed error objects)
+    console.error(
+      "NetSuite Invoice Error:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+}
+
+// Example Usage:
+
+// createNetSuiteInvoice(myInvoice);
+
+async function upsertInvoiceInNetsuite(record, lineItems) {
+  try {
+    // search invoice in netsuite by deal id
+    // if exist update else create
+    const payload = hubspotDealToNetsuiteInvoiceMapping(record);
+    return await createNetSuiteInvoice(payload);
+  } catch (error) {
+    logger.error("❌ Critical startup failure:", {
+      httpStatus: error?.status,
+      message: error.message,
+      data: error.response?.data,
+      stack: error?.stack,
+    });
+  }
+}
+
+async function processBatchDealInNetsuiteAsInvoice(records = []) {
+  try {
+    for (const [index, record] of records.entries()) {
+      try {
+        // process each record in netsuite as invoice and find deal line items parallelly
+        const response = await upsertInvoiceInNetsuite(record);
+        logger.info(`Upserted Invoice: ${JSON.stringify(response, null, 2)}`);
+      } catch (error) {
+        logger.error("❌ Critical startup failure:", {
+          httpStatus: error?.status,
+          message: error.message,
+          data: error.response?.data,
+          stack: error?.stack,
+        });
+      }
+    }
+  } catch (error) {
+    logger.error("❌ Critical startup failure:", {
+      httpStatus: error?.status,
+      message: error.message,
+      data: error.response?.data,
+      stack: error?.stack,
+    });
+  }
+}
 export {
+  processBatchDealInNetsuiteAsInvoice,
   netsuiteGenerator,
   syncNetsuiteInvoiceToHubspot,
   syncNetsuiteCustomerToHubspot,
+  createNetSuiteInvoice,
 };

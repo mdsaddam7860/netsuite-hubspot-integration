@@ -1,6 +1,7 @@
 import { logger } from "../index.js";
 import { getHSAxios } from "../configs/hubspot.config.js";
 import { hubspotExecutor, netsuiteExecutor } from "../utils/executors.js";
+import { processBatchDealInNetsuiteAsInvoice } from "./netsuite.service.js";
 
 async function* hubspotGenerator(
   endpoint,
@@ -165,4 +166,54 @@ async function syncHubspotInvoiceToNetSuiteInvoice() {
   }
 }
 
-export { syncHubspotInvoiceToNetSuiteInvoice };
+// Get deal from hubspots and create invoice in netsuite
+
+async function syncHubspotDealToNetSuiteInvoice() {
+  try {
+    const lastSyncTime = "2026-02-14T10:00:00.000Z";
+    const endpoint = "/crm/v3/objects/deals";
+
+    const filterGroups = [
+      {
+        filters: [
+          {
+            propertyName: "lastmodifieddate",
+            operator: "GT",
+            value: lastSyncTime,
+          },
+        ],
+      },
+    ];
+
+    const recordStream = hubspotGenerator(endpoint, {
+      properties: contactProperties(),
+      // filterGroups,
+    });
+
+    // const contactStream = hubspotGenerator(endpoint, properties, filterGroups);
+
+    for await (const { records, stats } of recordStream) {
+      await processBatchDealInNetsuiteAsInvoice(records);
+      logger.info(`[Netsuite Progress] ${endpoint}`, {
+        page: stats.page,
+        processed: stats.totalProcessed,
+        speed: `${stats.recordsPerSecond} rec/sec`,
+      });
+      // return;
+    }
+  } catch (error) {
+    logger.error("❌ Error processing Deal in Batch", {
+      status: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+  }
+}
+
+export {
+  syncHubspotInvoiceToNetSuiteInvoice,
+  syncHubspotDealToNetSuiteInvoice,
+};
