@@ -1,12 +1,26 @@
 import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
+const { combine, timestamp, printf, errors, colorize, json } = format;
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const { combine, timestamp, printf, errors, colorize } = format;
+const __filename = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.join(__filename, "../../", "winstonLogs");
+if (!fs.existsSync(__dirname)) {
+  fs.mkdirSync(__dirname);
+}
+
+function getDate() {
+  const date = new Date();
+  return date.toISOString().split("T")[0];
+}
 
 // Custom timestamp (12-hour)
 const customTimestamp = timestamp({
   format: () =>
     new Date().toLocaleString("en-IN", {
+      // timeZone: "UTC", For UTC time, you can uncomment this line
       hour: "numeric",
       minute: "numeric",
       second: "numeric",
@@ -36,55 +50,128 @@ const fileFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
 });
 
 const productionLogger = () => {
-  const dailyError = new transports.DailyRotateFile({
-    filename: "logs/error-%DATE%.log",
+  const Error = new transports.DailyRotateFile({
+    filename: "winstonLogs/error-%DATE%.log",
     datePattern: "YYYY-MM-DD",
     level: "error",
     zippedArchive: true,
     maxSize: "10m",
-    maxFiles: "28d", // keep 28 days of logs
+    maxFiles: "5", // keep 5 files of logs
   });
 
-  const dailyCombined = new transports.DailyRotateFile({
-    filename: "logs/combined-%DATE%.log",
+  const Prod = new transports.DailyRotateFile({
+    filename: "winstonLogs/Prod-Combined-%DATE%.log",
     datePattern: "YYYY-MM-DD",
-    level: process.env.LOG_LEVEL || "info", // logs info, warn, debug
+    level: process.env.LOG_LEVEL || "debug", // logs info, warn, debug
     zippedArchive: true,
-    maxSize: "10m",
-    maxFiles: "28d",
+    maxSize: "20m",
+    maxFiles: "10",
   });
 
   return createLogger({
-    level: process.env.LOG_LEVEL || "info",
+    level: process.env.LOG_LEVEL || "debug",
     format: combine(customTimestamp, errors({ stack: true })),
-    defaultMeta: { service: "openphone-service" },
+    defaultMeta: { service: "Netsuite-Hubspot-RealTime-Integrration" },
     transports: [
-      dailyCombined, // all logs
-      dailyError, // error-only logs
+      Prod, // all logs
+      Error, // error-only logs
       new transports.Console({
         format: combine(colorize(), customTimestamp, consoleFormat),
-        level: "info",
+        level: "debug",
         handleExceptions: true,
         handleRejections: true,
       }),
     ],
     exceptionHandlers: [
       new transports.DailyRotateFile({
-        filename: "logs/exceptions-%DATE%.log",
+        filename: "winstonLogs/exceptions-%DATE%.log",
         datePattern: "YYYY-MM-DD",
         maxSize: "10m",
-        maxFiles: "14d",
+        maxFiles: "2",
         zippedArchive: true,
       }),
     ],
     rejectionHandlers: [
       new transports.DailyRotateFile({
-        filename: "logs/rejections-%DATE%.log",
+        filename: "winstonLogs/rejections-%DATE%.log",
         datePattern: "YYYY-MM-DD",
         maxSize: "10m",
-        maxFiles: "14d",
+        maxFiles: "2",
         zippedArchive: true,
       }),
+    ],
+  });
+};
+
+const developementLogger = function () {
+  // const Error = new transports.DailyRotateFile({
+  //   filename: "winstonLogs/Dev-Error-%DATE%.log",
+  //   datePattern: "YYYY-MM-DD",
+  //   level: "error",
+  //   zippedArchive: true,
+  //   maxSize: "10m",
+  //   maxFiles: "28d", // keep 28 days of logs
+  // });
+
+  // const Dev = new transports.DailyRotateFile({
+  //   filename: "winstonLogs/Dev-Combined-%DATE%.log",
+  //   datePattern: "YYYY-MM-DD",
+  //   level: process.env.LOG_LEVEL || "info", // logs info, warn, debug
+  //   zippedArchive: true,
+  //   maxSize: "10m",
+  //   maxFiles: "28d",
+  // });
+
+  const Dev = new transports.File({
+    // filename: `winstonLogs/Dev-Combined-%DATE%.log`,
+    filename: `winstonLogs/Dev-Combined-${getDate()}.log`,
+    format: fileFormat,
+    level: "debug",
+    maxsize: 20 * 1024 * 1024, // 20MB
+    maxFiles: "10",
+    handleExceptions: true,
+    handleRejections: true,
+  });
+
+  const Console = new transports.Console({
+    format: combine(colorize(), customTimestamp, consoleFormat),
+    handleExceptions: true,
+    handleRejections: true,
+  });
+
+  return createLogger({
+    level: "info",
+    format: combine(
+      errors({ stack: true }),
+      customTimestamp,
+      json() // This ensures the object is stringified for the files
+    ),
+    // defaultMeta: { service: "Netsuite-Hubspot-RealTime-Integrration" },
+
+    // exceptionHandlers: [
+    //   new transports.DailyRotateFile({
+    //     filename: "winstonLogs/exceptions-%DATE%.log",
+    //     datePattern: "YYYY-MM-DD",
+    //     maxSize: "10m",
+    //     maxFiles: "14d",
+    //     zippedArchive: true,
+    //   }),
+    // ],
+
+    // rejectionHandlers: [
+    //   new transports.DailyRotateFile({
+    //     filename: "winstonLogs/rejections-%DATE%.log",
+    //     datePattern: "YYYY-MM-DD",
+    //     maxSize: "10m",
+    //     maxFiles: "14d",
+    //     zippedArchive: true,
+    //   }),
+    // ],
+    transports: [
+      // Error,
+      // Combined,
+      Console,
+      Dev,
     ],
   });
 };
@@ -93,45 +180,6 @@ const productionLogger = () => {
 const logger =
   process.env.NODE_ENV === "production"
     ? productionLogger()
-    : createLogger({
-        level: "info",
-        format: combine(customTimestamp, errors({ stack: true })),
-        transports: [
-          new transports.Console({
-            format: combine(colorize(), customTimestamp, consoleFormat),
-            handleExceptions: true,
-            handleRejections: true,
-          }),
-          new transports.File({
-            filename: "logs/development.log",
-            format: fileFormat,
-            level: "info",
-            maxsize: 5 * 1024 * 1024, // 5MB
-            handleExceptions: true,
-            handleRejections: true,
-          }),
-        ],
-      });
+    : developementLogger();
 
 export { logger };
-
-/**
- * Method to use logger for handling error
- * 
- * logger.error("HubSpot Axios error", {
-        status: "HubSpot Axios error",
-        response: "HubSpot Axios error",
-        method: "HubSpot Axios error",
-        url: "HubSpot Axios error",
-        headers: "HubSpot Axios error",
-      });
-
-      Working example
-      logger.error("HubSpot Axios error", {
-      status: error.response?.status,
-      response: error.response?.data,
-      method: error.config?.method,
-      url: error.config?.url,
-      headers: error.config?.headers,
-    });
- */

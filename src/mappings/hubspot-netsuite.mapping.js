@@ -56,18 +56,29 @@ function hubspotDealToNetsuiteInvoiceMapping(hubspotDeal = {}) {
     },
     item: {
       items: [
-        {
-          item: {
-            id: "182",
-          },
-          quantity: 1,
-          rate: 139,
-          custcol_agency_mf_flight_start_date: "2026-03-06",
-          custcol_agency_mf_flight_end_date: "2026-03-10",
-        },
+        // {
+        //   item: {
+        //     id: "182",
+        //   },
+        //   quantity: 1,
+        //   rate: 139,
+        //   custcol_agency_mf_flight_start_date: "2026-03-06",
+        //   custcol_agency_mf_flight_end_date: "2026-03-10",
+        // },
       ],
     },
   };
   return payload;
 }
-export { hubspotDealToNetsuiteInvoiceMapping };
+function getlineItemPayload(record) {
+  return {
+    item: {
+      id: "182",
+    },
+    quantity: 1,
+    rate: 139,
+    custcol_agency_mf_flight_start_date: "2026-03-06",
+    custcol_agency_mf_flight_end_date: "2026-03-10",
+  };
+}
+export { hubspotDealToNetsuiteInvoiceMapping, getlineItemPayload };

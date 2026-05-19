@@ -14,10 +14,14 @@ import { getNetsuiteClient } from "./src/configs/netsuite.config.js";
 import {
   syncNetsuiteInvoiceToHubspot,
   syncNetsuiteCustomerToHubspot,
+  fetchCustomer,
+  processCustomers,
+  fetchInvoice,
+  queryOpportunity,
 } from "./src/services/netsuite.service.js";
 import { syncHubspotInvoiceToNetSuiteInvoice } from "./src/services/hubspot.service.js";
 import { createNetSuiteInvoice } from "./src/services/netsuite.service.js";
-
+import { processBatchDealInNetsuiteAsInvoice } from "./src/services/netsuite.service.js";
 const PORT = process.env.PORT || 5000;
 
 function serverInit() {
@@ -36,7 +40,11 @@ function serverInit() {
 }
 
 serverInit();
-createNetSuiteInvoice();
+// processBatchDealInNetsuiteAsInvoice();
+// fetchCustomer("email", "bjpayne62@gmail.com");
+// processCustomers();
+// fetchInvoice();
+queryOpportunity();
 
 async function init() {
   try {

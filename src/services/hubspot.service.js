@@ -42,6 +42,7 @@ async function* hubspotGenerator(
               ...(properties.length && {
                 properties: properties.join(","),
               }),
+              // associations: ["companies"],
             },
           });
         }
@@ -213,7 +214,88 @@ async function syncHubspotDealToNetSuiteInvoice() {
   }
 }
 
+async function fetchHubSpotAssociationIds(
+  fromObject = "companies",
+  toObject = "contacts",
+  objectId
+) {
+  if (!fromObject || !toObject || !objectId) {
+    logger.warn(
+      `Missing fromObject or toObject or objectId fromObject:${fromObject}, toObject:${toObject}, objectId:${objectId}`
+    );
+    return null;
+  }
+  let associatedIds = [];
+  try {
+    // fetch associated ids from hubspot
+    const endpoint = `/crm/v3/objects/${fromObject}/${objectId}/associations/${toObject}`;
+    const client = getHSAxios();
+    const response = await client.get(endpoint);
+
+    const results = response.data?.results || [];
+
+    associatedIds = results.reduce((acc, item) => {
+      acc.push(item.id);
+      return acc;
+    }, []);
+
+    // logger.info(
+    //   `[Hubspot] ${endpoint} : ${JSON.stringify(associatedIds, null, 2)}`
+    // );
+
+    return associatedIds || [];
+  } catch (error) {
+    logger.error(`❌ Error processing search in Hubspot:getAssociatedIds`, {
+      httpStatus: error?.status,
+      response: error.response?.data,
+      method: error?.method,
+      url: error?.config?.url,
+      headers: error?.config?.headers,
+      message: error.message,
+    });
+  }
+}
+async function fetchHubspotObject(
+  fromObject = "companies",
+  objectId,
+  properties = [] // Default to empty array to prevent length errors
+) {
+  if (!fromObject || !objectId) {
+    logger.warn(
+      `Missing fromObject or objectId. fromObject: ${fromObject}, objectId: ${objectId}`
+    );
+    return null;
+  }
+
+  // Ensure we have a valid comma-separated string or undefined
+  const propertyString =
+    properties?.length > 0 ? properties.join(",") : undefined;
+
+  try {
+    const endpoint = `/crm/v3/objects/${fromObject}/${objectId}`;
+    const client = getHSAxios();
+
+    // Axios GET request structure: client.get(url, { params: { key: value } })
+    const response = await client.get(endpoint, {
+      params: {
+        properties: propertyString,
+      },
+    });
+
+    return response?.data;
+  } catch (error) {
+    logger.error(`❌ Error fetching HubSpot object:`, {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    return null; // Explicitly return null on failure
+  }
+}
+
 export {
+  fetchHubspotObject,
+  fetchHubSpotAssociationIds,
   syncHubspotInvoiceToNetSuiteInvoice,
   syncHubspotDealToNetSuiteInvoice,
 };
